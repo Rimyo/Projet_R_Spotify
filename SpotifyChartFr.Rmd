@@ -1,6 +1,6 @@
 ---
 title: "Rapport d'analyse des classements musicaux sur Spotify entre 2019 et 2020"
-author: " "
+author: " Mingjie Zhang "
 date: '2022-06-07'
 subtitle: 'Problématique: Les confinements liés au covid-19 influencent-ils le choix
   des musiques de français?'
