@@ -1,0 +1,472 @@
+---
+title: "Rapport d'analyse des classements musicaux sur Spotify entre 2019 et 2020"
+author: "ZHANG Mingjie"
+date: '2022-06-07'
+subtitle: 'Problématique: Les confinements liés au covid-19 influencent-ils le choix
+  des musiques de français?'
+  
+header-includes:
+    \renewcommand{\contentsname}{Table des matières}
+output:
+  html_document:
+    toc: true
+  pdf_document: 
+    
+    toc: true
+    toc_depth: 3
+---
+
+```{r install library, include = FALSE, eval = FALSE}
+install.packages(ggplot2)     
+install.packages(dplyr)
+install.packages(tidyverse)
+install.packages(hrbrthemes)
+install.packages(wordcloud2)
+install.packages(spotifyr)
+install.packages(stringr)
+install.packages(fs)
+install.packages(gganimate)
+install.packages(animation)
+install.packages(ggpubr)
+install.packages(ggcorrplot)
+install.packages(ggrepel)
+
+```
+
+```{r library, include = FALSE}
+knitr::opts_chunk$set(fig.width = 5, fig.height = 3.8, fig.align = "center")
+library(ggplot2)     
+library(dplyr)
+library(tidyverse)
+library(hrbrthemes)
+library(wordcloud2)
+library(spotifyr)
+library(stringr)
+library(fs)
+library(gganimate)
+library(animation)
+library(ggpubr)
+library(ggcorrplot)
+library(ggrepel)
+```
+
+```{r setup, echo=FALSE, include=FALSE, cache= TRUE, eval = FALSE}
+
+setwd("~/Bureau/EAVD")
+getwd()
+
+
+#Set up the environment
+Sys.setenv(SPOTIFY_CLIENT_ID = '03ef40569fa147399d4c6a1032151631')
+Sys.setenv(SPOTIFY_CLIENT_SECRET = '433d39a253084a21823bbcb587d21035')
+access_token <- get_spotify_access_token()
+
+
+#Charge all csv files relative
+#------------CHARTS2019------------#
+Charts2019_path <- fs::dir_ls("Charts2019")
+Charts2019_csv <- list()
+for(i in seq_along(Charts2019_path)){
+  Charts2019_csv[[i]] <- read.csv(file = Charts2019_path[i])
+}
+Charts2019_csv <- set_names(Charts2019_csv, Charts2019_path)
+
+#------------CHARTS2020------------#
+Charts2020_path <- fs::dir_ls("Charts2020")
+Charts2020_csv <- list()
+for(i in seq_along(Charts2020_path)){
+  Charts2020_csv[[i]] <- read.csv(file = Charts2020_path[i])
+}
+Charts2020_csv <- set_names(Charts2020_csv, Charts2020_path)
+
+
+#Build csv files with all necessary data about each music 
+#
+#------------CHARTS2019------------#
+#
+Charts2019_complete <- list()
+musicdata <- list()
+
+i <- 1
+for(val in Charts2019_csv){
+  ids <- val[2]
+  ids_1 <- head(ids, 100)
+  ids_2 <- tail(ids, 100)
+  
+  for(id in ids_1){
+    id <- gsub('spotify:track:','', id)
+    row <- get_track_audio_features(id, authorization = get_spotify_access_token())
+    musicdata <- rbind(musicdata, row)
+    row<- NULL
+  }
+  for(id in ids_2){
+    id <- gsub('spotify:track:','', id)
+    row <- get_track_audio_features(id, authorization = get_spotify_access_token())
+    musicdata <- rbind(musicdata, row)
+    row<- NULL
+  }
+  val <- cbind(val, musicdata)
+  date <- gsub('Charts2019/regional-fr-daily-','',Charts2019_path[i])
+  date <- gsub('.csv', '', date)
+  val$date <- date
+  Charts2019_complete[[i]] <- val
+  i <- i + 1
+  
+  ids <- NULL
+  ids_1 <- NULL
+  ids_2 <- NULL
+  val <- NULL
+  musicdata <- NULL
+  row <- NULL
+}
+
+aux <- c()
+i <- 1
+for(csv in Charts2019_path){
+  name <- gsub('Charts2019/regional-fr-daily-','',csv)
+  aux <- append(aux, name)
+  i <- i + 1
+}
+Charts2019_complete <- set_names(Charts2019_complete, aux)
+
+file2019 <- data.frame() 
+for(csv in Charts2019_complete){
+  file2019 <- rbind(file2019, csv)
+}
+
+file2019[2] <- NULL
+#
+#------------CHARTS2020------------#
+#
+Charts2020_complete <- list()
+i <- 1
+for(val in Charts2020_csv){
+  ids <- val[2]
+  ids_1 <- head(ids, 100)
+  ids_2 <- tail(ids, 100)
+  
+  for(id in ids_1){
+    id <- gsub('spotify:track:','', id)
+    row <- get_track_audio_features(id, authorization = get_spotify_access_token())
+    musicdata <- rbind(musicdata, row)
+    row<- NULL
+  }
+  for(id in ids_2){
+    id <- gsub('spotify:track:','', id)
+    row <- get_track_audio_features(id, authorization = get_spotify_access_token())
+    musicdata <- rbind(musicdata, row)
+    row<- NULL
+  }
+  val <- cbind(val, musicdata)
+  date <- gsub('Charts2020/regional-fr-daily-','',Charts2020_path[i])
+  date <- gsub('.csv', '', date)
+  val$date <- date
+  Charts2020_complete[[i]] <- val
+  i <- i + 1
+  
+  ids <- NULL
+  ids_1 <- NULL
+  ids_2 <- NULL
+  val <- NULL
+  musicdata <- NULL
+  row <- NULL
+}
+
+aux <- c()
+i <- 1
+for(csv in Charts2020_path){
+  name <- gsub('Charts2020/regional-fr-daily-','',csv)
+  aux <- append(aux, name)
+  i <- i + 1
+}
+Charts2020_complete <- set_names(Charts2020_complete, aux)
+
+file2020 <- data.frame() 
+for(csv in Charts2020_complete){
+  file2020 <- rbind(file2020, csv)
+}
+
+file2020[2] <- NULL
+
+write.csv(file2019, file = "Data2019_mix.csv")
+write.csv(file2020, file = "Data2020_mix.csv")
+saveRDS(Charts2019_complete, file = "Data2019.RData")
+saveRDS(Charts2020_complete, file = "Data2020.RData")
+```
+
+\newpage 
+
+
+# <font size="14">**Introduction**</font> 
+
+## <font size="14">**présentation générale**</font> 
+
+<font size="19">
+  Le covid-19 a grandement impacté la vie des gens, notamment lorsque les confinements ont été imposés, il est donc intéressant d'étudier leur comportement, et la musique étant très omniprésente dans leur quotidien, ce qui fait d'elle un bon sujet d'étude à mon avis.
+  
+   Cette analyse de données a donc pour but d'étudier s'il existe, un lien entre les musiques qu'écoutent les français sur Spotify et les confinements liés au covid-19. Pour cela, on analysera les classements musicaux quotidiens francophones des années 2019 et 2020. On comparera les données de 2019 en tant que témoin avec celles de 2020.
+   
+   
+## <font size="12">**présentation des données**</font> 
+Les fichiers téléchargés depuis le site "https://charts.spotify.com/" ne contiennent que les informations concernant le rang, le nombre de streaming, l'uri, le nom de la musique ainsi que le nom de l'artiste.
+
+On s'aide donc de la librairie "spotifyr" pour obtenir les informations sur les musiques tels que:
+   
+   -energy: energie(l'intensité et l'activité, entre 0 et 1, une musique type "métal" a une valeur proche de 1)
+   
+   -loudness: intensité sonore
+   
+   -speechiness: élocution (la présence de paroles, entre 0 et 1)
+   
+   -acoustic: acoustique (La présence d'instrument non électrifiés, entre 0 et 1)
+   
+   -valence: valence (la positivité de la musique, entre 0 et 1)
+   
+   -liveness: vivacité (la présence d'une audience dans l'audio, une valeur au dessus de 0.8 indique que la musique est probablement un enregistrement d'un concert)
+   
+   -tempo: tempo
+   
+   -intrumentalness: instrumentalité (la présence de voix, entre 0 et 1, plus la valeur est haute, moins la présence de voix est importante)
+   
+   -danceability: incitation à danser (si la musique est faite pour danser, entre 0 et 1)
+
+\newpage
+# <font size="14">**Analyse des données**</font> 
+## <font size="12">**Pertinence de l'analyse**</font> 
+Le but étant de savoir si les confinements ont eu un impact sur les musiques qu'écoutent les français. C'est pourquoi, on doit d'abord comparer le tableau de cohérence des différentes variables décrites au dessus de 2019 avec celui de 2020, afin de savoir s'il est intéressant de comparer les données  de 2019 avec celles de 2020. En effet, si les styles de musiques écoutées différent d'une année à une autre, il serait impertinent de procéder au reste de l'analyse.
+
+Un tableau de corrélation indique comment 2 variables sont correlées, liées, une correlation positive signifie que lorsque la valeur de l'une des 2 variables est grande relativement, la valeur de l'autre est grande aussi relativement. Et au contraire, une correlation négative signifie que quand la valeur de l'une des 2 variables est grande relativement, l'autre est petite relativement. Ces rapports sont plus importants à mesure que la valeur absolue de corrélation s'approche de 1. Et une corrélation nulle signifie qu'il n'y a aucun lien entre les 2 variables.
+Par exemple, un retour à la mode du tecktonik augmenterait la corrélation entre le tempo et l'énergie, ou encore le tempo et l'intensité sonore.
+
+```{r tableau correlation19, echo=FALSE, cache= TRUE, fig.width = 6, fig.height = 3.6}
+Charts2019_m <- read.csv("Data2019_mix.csv")
+Charts2020_m <- read.csv("Data2020_mix.csv")
+Charts2019 <- readRDS("Data2019.RData") 
+Charts2020 <- readRDS("Data2020.RData") 
+
+song_corr <- Charts2019_m %>% 
+  select(danceability, energy, loudness, speechiness, acousticness,instrumentalness, liveness,valence, tempo)
+corr <- round(cor(song_corr),1)
+head(corr[,1:6])
+ggcorrplot(corr, hc.order =  FALSE, type = "lower", lab = TRUE, ggtheme = ggplot2::theme_bw, colors = c("#0c013d","#ebebeb","#7a0000"))
+```
+
+
+    Tableau de corrélation de 2019
+    
+    
+```{r tableau correlation20, echo=FALSE, cache= TRUE, fig.width = 6, fig.height = 3.6}
+song_corr2 <- na.omit(Charts2020_m) %>% 
+  select(danceability, energy, loudness, speechiness, acousticness,instrumentalness, liveness,valence, tempo)
+corr2 <- round(cor(song_corr2),1)
+head(corr2[,1:6])
+ggcorrplot(corr2, hc.order =  FALSE, type = "lower", lab = TRUE, ggtheme = ggplot2::theme_bw, colors = c("#0c013d","#ebebeb","#7a0000"))
+
+```
+
+
+    Tableau de corrélation de 2020
+    
+
+
+
+En comparant les 2 tableaux, on remarque dans la globalité la valeur de corrélation pour des mêmes variables est assez similaires entre 2019 et 2020, à ± 0.1 près, ce qui est assez négligéable pour l'échelle considérée, cela représente une différence de valeur de ±5%.
+
+On observe aussi des valeurs de corrélations non négligéables, comme par exemple entre énergie et l'intensité sonore où on a une valeur de 0.7, une valeur qui est normale, car plus une musique est énérgétique plus elle a la tendance à avoir une intensité sonore élevé. De même, pour la valeur de corrélation entre l'intensité sonore et l'acoustique, une musique comportant des instruments non numériques a une intensité sonore plus élevée que des instruments numériques.
+
+\newpage
+## <font size="12">**Les axes de l'analyse**</font> 
+On choisit d'étudier les graphes en fonction de 2 paramètres:
+
+-La pertinence de la variable dans ce contexte.
+
+-Sa valeur de cohérence dans le tableau avec les autres variables.
+
+En effet, la vivacité d'une musique paraît peu pertinente à étudier, le fait qu'une musique soit ou non un enregistrement d'un concert n'est pas intéressant dans ce cadre, il serait aussi inutile d'étudier 2 graphes sur 2 variables dont la valeur absolue de cohérence est supérieure à 0.2, les allures des graphes sont assez similaires dans ces cas là.
+C'est pourquoi l'analyse se fera sur les graphes portant sur la valence, le tempo, instrumentalité, l'acoustique et l'élocution.
+
+## <font size="12">**Analyse des graphes**</font> 
+```{r, echo=FALSE}
+data19 <- data.frame()
+i <- 1
+for(x in Charts2019){
+  data19 <- rbind(data19, data.frame(i,colMeans(x[19], na.rm = TRUE)))
+  i <- i + 1 
+}
+
+data20 <- data.frame()
+i <- 1
+for(x in Charts2020){
+  data20 <- rbind(data20, data.frame(i,colMeans(x[19], na.rm = TRUE)))
+  i <- i + 1 
+}
+
+data19 <- set_names(data19, c("jour", "valence"))
+data20 <- set_names(data20, c("jour", "valence"))
+
+graphValence <- ggplot()  + 
+  geom_line(data19,col = "red", mapping = aes(x = jour, y = valence)) + 
+  geom_label(aes(x = 0, y = .54, label = "2019", col = ""))  +
+  geom_line(data20, col = "blue", mapping = aes(x = jour, y = valence)) +
+  geom_label(aes(x = 0, y = .55, label = "2020", col ="blue")) +
+  labs(x = 'jour',y = 'valeur moyenne de la valence') +
+  theme(legend.position = "none")
+
+graphValence
+```
+
+    Graphe montrant l'évolution de la valeur moyenne de la valence en fonction du jour des années 2019 
+    et 2020
+
+On constate que dans la globalité, la courbe de 2020 est au dessus de celle de 2019, et qu'il y a une montée brusque des valeurs vers le 160eme jour pour les 2 courbes.
+La montée brusque peut s'expliquer par le fait que vers le 160eme jour, c'est à dire vers début mai, on a généralement une amélioration de la météo, avec un climat plus chaud. Donc cela justifie que les gens ont plus tendance à écouter des musiques avec une valence plus grande, donc plus positive, plus joyeuse, mais ce saut est encore plus important pour la courbe de 2020, cela pourrait s'explique par la joie que procure le fait que le premier confinement s'est fini le 11 mai 2019.
+
+De plus, on observe une certaine périodicité avant le saut des valeurs, en effet, pour la courbe de 2019, la valeur moyenne de la valence semble varier périodiquement avec une période de 60 jours dont la valeur maximale ne dépasse pas 0.53, et ça semble être le cas aussi pour la courbe de 2020
+ à une exception près, la période qui commence vers le 120eme jour a un maximal plus grand que les autres périodes, et à cette date, on est à vers 3 semaines après le début du confinement, l'augmente de la valeur moyenne de la valence peut s'expliquer par la joie de rester chez soi et de ne pas travailler, et/ou l'écoute des musiques positives comble l'ennuie.
+ 
+ 
+```{r, echo=FALSE}
+data19 <- data.frame()
+i <- 1
+for(x in Charts2019){
+  data19 <- rbind(data19, data.frame(i,colMeans(x[20], na.rm = TRUE)))
+  i <- i + 1 
+}
+
+data20 <- data.frame()
+i <- 1
+for(x in Charts2020){
+  data20 <- rbind(data20, data.frame(i,colMeans(x[20], na.rm = TRUE)))
+  i <- i + 1 
+}
+
+data19 <- set_names(data19, c("jour", "tempo"))
+data20 <- set_names(data20, c("jour", "tempo"))
+
+graphtempo <- ggplot()  + 
+  geom_line(data19,col = "red", mapping = aes(x = jour, y = tempo)) + 
+  geom_label(aes(x = 0, y = 124, label = "2019", col = ""))  +
+  geom_line(data20, col = "blue", mapping = aes(x = jour, y = tempo)) +
+  geom_label(aes(x = 0, y = 125, label = "2020", col ="blue")) +
+  labs(x = 'jour',y = 'valeur moyenne du tempo') +
+  theme(legend.position = "none")
+
+graphtempo
+```
+
+    Graphe montrant l'évolution de la valeur moyenne du tempo en fonction du jour des années 2019 
+    et 2020
+    
+On observe que jusqu'au 120eme jour, les valeurs des courbes de 2019 et 2020 restent assez proches avec une différence inférieure à 2bpm, et à partir de cette date, les valeurs de la courbe de 2020 sont supérieures à celles de 2019 jusqu'au 250eme jour.
+
+
+```{r, echo=FALSE}
+data19 <- data.frame()
+i <- 1
+for(x in Charts2019){
+  data19 <- rbind(data19, data.frame(i,colMeans(x[17], na.rm = TRUE)))
+  i <- i + 1 
+}
+
+data20 <- data.frame()
+i <- 1
+for(x in Charts2020){
+  data20 <- rbind(data20, data.frame(i,colMeans(x[17], na.rm = TRUE)))
+  i <- i + 1 
+}
+
+data19 <- set_names(data19, c("jour", "instru"))
+data20 <- set_names(data20, c("jour", "instru"))
+
+graphinstru <- ggplot()  + 
+  geom_line(data19,col = "red", mapping = aes(x = jour, y = instru)) + 
+  geom_label(aes(x = 0, y = 0.014, label = "2019", col = ""))  +
+  geom_line(data20, col = "blue", mapping = aes(x = jour, y = instru)) +
+  geom_label(aes(x = 0, y = 0.015, label = "2020", col ="blue")) +
+  labs(x = 'jour',y = 'valeur moyenne de l\'instrumentalité') +
+  theme(legend.position = "none")
+
+graphinstru
+```
+
+    Graphe montrant l'évolution de la valeur moyenne de l'instrumentalité en fonction du jour des années 
+    2019 et 2020
+
+On constate que la courbe de 2020 est généralement au dessus de celle de 2019, et ce même avant le début des confinements, par conséquent, cela ne nous permet pas d'établir de lien entre le confinement et l'instrumentalité des musiques écoutées.
+
+```{r, echo=FALSE}
+data19 <- data.frame()
+i <- 1
+for(x in Charts2019){
+  data19 <- rbind(data19, data.frame(i,colMeans(x[16], na.rm = TRUE)))
+  i <- i + 1 
+}
+
+data20 <- data.frame()
+i <- 1
+for(x in Charts2020){
+  data20 <- rbind(data20, data.frame(i,colMeans(x[16], na.rm = TRUE)))
+  i <- i + 1 
+}
+
+data19 <- set_names(data19, c("jour", "acoust"))
+data20 <- set_names(data20, c("jour", "acoust"))
+
+graphacoust <- ggplot()  + 
+  geom_line(data19,col = "red", mapping = aes(x = jour, y = acoust)) + 
+  geom_label(aes(x = 0, y = .35, label = "2019", col = ""))  +
+  geom_line(data20, col = "blue", mapping = aes(x = jour, y = acoust)) +
+  geom_label(aes(x = 0, y = 0.38, label = "2020", col ="blue")) +
+  labs(x = 'jour',y = 'valeur moyenne de l\'acoustique') +
+  theme(legend.position = "none")
+
+graphacoust
+```
+
+    Graphe montrant l'évolution de la valeur moyenne de l'acoustique en fonction du jour des années 2019 
+    et 2020
+
+On observe que jusqu'au 150eme jour, les valeurs de la courbe de 2020 sont généralement supérieures à celles de la courbe de 2019, et par la suite on assiste à une inversion de cette tendance jusqu'au 250eme jour, où les 2 courbes se rejoignent. Cette analyse n'est pas concluante.
+
+```{r, echo=FALSE}
+data19 <- data.frame()
+i <- 1
+for(x in Charts2019){
+  data19 <- rbind(data19, data.frame(i,colMeans(x[15], na.rm = TRUE)))
+  i <- i + 1 
+}
+
+data20 <- data.frame()
+i <- 1
+for(x in Charts2020){
+  data20 <- rbind(data20, data.frame(i,colMeans(x[15], na.rm = TRUE)))
+  i <- i + 1 
+}
+
+data19 <- set_names(data19, c("jour", "eloc"))
+data20 <- set_names(data20, c("jour", "eloc"))
+
+grapheloc <- ggplot()  + 
+  geom_line(data19,col = "red", mapping = aes(x = jour, y = eloc)) + 
+  geom_label(aes(x = 0, y = .2, label = "2019", col = ""))  +
+  geom_line(data20, col = "blue", mapping = aes(x = jour, y = eloc)) +
+  geom_label(aes(x = 0, y = 0.22, label = "2020", col ="blue")) +
+  labs(x = 'jour',y = 'valeur moyenne de l\'elocution') +
+  theme(legend.position = "none")
+
+grapheloc
+```
+
+    Graphe montrant l'évolution de la valeur moyenne de l'élocution en fonction du jour des années 2019 
+    et 2020
+    
+On remarque que l'évolution des courbes ne semblent pas avoir de lien logique avec les dates spécifique des confinements. Par conséquent, on ne peut rien en déduire.
+
+
+# <font size="14">**Conclusion**</font> 
+## <font size="12">**Synthèse**</font> 
+Sur les 5 graphes analysés, seuls 2 graphes nous permettes d'établir un potentiel lien avec les dates de confinements, celui portant sur la valence et celui sur le tempo, et la valence ayant un coefficient de corrélation non négligeable de 0.3 avec l'intensité sonore, l'énergie et l'incitation à danser, on peut alors conclure qu'effectivement les confinements liés au covid-19 ont affecté les choix musicaux en 2020, les musiques ayant des valeurs hautes pour les variables ci-dessus se voient attribuées une position au classement top200 de France.
+
+
+## <font size="12">**Bilan personnel**</font> 
+Dans la globalité, ce travail m'a été très instructif, le fait de découvrir un nouveau langage de programmation, ou encore le fait que les confinements ont affecté les musiques qu'écoutent les gens. Je trouve que cette analyse n'est pas complète mais assez précise, en effet les données analysées sont des données des classements quotidiens de 2019 et 2020, soit 731 fichiers avec 200 musiques chacun, mais le mieux aurait été de pouvoir analyser les données de plus d'année, comme celles de 2016,2017 et 2021.
