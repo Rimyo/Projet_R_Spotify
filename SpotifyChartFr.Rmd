@@ -1,6 +1,6 @@
 ---
 title: "Rapport d'analyse des classements musicaux sur Spotify entre 2019 et 2020"
-author: "ZHANG Mingjie"
+author: " "
 date: '2022-06-07'
 subtitle: 'Problématique: Les confinements liés au covid-19 influencent-ils le choix
   des musiques de français?'
@@ -57,8 +57,8 @@ getwd()
 
 
 #Set up the environment
-Sys.setenv(SPOTIFY_CLIENT_ID = '03ef40569fa147399d4c6a1032151631')
-Sys.setenv(SPOTIFY_CLIENT_SECRET = '433d39a253084a21823bbcb587d21035')
+Sys.setenv(SPOTIFY_CLIENT_ID = 'YOUR_SPOTIFY_CLIENT_ID')
+Sys.setenv(SPOTIFY_CLIENT_SECRET = 'YOUR_SPOTIFY_CLIENT_SECRET')
 access_token <- get_spotify_access_token()
 
 
